@@ -20,9 +20,15 @@ test('served register contains reviewed roads, bin scopes and current contact ad
   const r = await fetch(base + '/data/responsibilities.json');
   assert.equal(r.status, 200);
   const d = await r.json();
-  assert.equal(d.features.length, 313);
+  assert.equal(d.features.length, 316);
   assert.equal(d.organisations.elite.email, 'westernpark@elitesportsuk.com');
   assert(d.features.some((f) => f.properties.id === 'bins-bughunter'));
+  assert(d.features.some((f) => f.properties.id === 'western-carpark'));
+  assert(d.features.some((f) => f.properties.id === 'education-campus'));
+  assert.equal(d.binRegister.records.length, 48);
+  const bins = await fetch(base + '/data/bin-register.json');
+  assert.equal(bins.status, 200);
+  assert.deepEqual((await bins.json()).records, d.binRegister.records);
   assert.equal(
     d.features.filter((f) => f.properties.id.startsWith('AdoptedRoads.'))
       .length,
@@ -37,6 +43,7 @@ test('served register contains reviewed roads, bin scopes and current contact ad
 test('private review pack, source code and dot paths are not served', async () => {
   for (const url of [
     '/email-drafts/index.html',
+    '/email-drafts/follow-ups/index.html',
     '/email-drafts/drafts.json',
     '/Northstowe%20emails/adopted%20map.png',
     '/scripts/prepare-email-drafts.py',

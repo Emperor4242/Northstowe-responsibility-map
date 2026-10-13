@@ -917,3 +917,92 @@ body {
     animation: none !important;
   }
 }
+.asset-roles {
+  display: grid;
+  grid-template-columns: 85px 1fr;
+  gap: 5px 10px;
+  font-size: 13px;
+  margin: 12px 0;
+  color: #526c76;
+}
+.asset-roles dt {
+  font-weight: 600;
+}
+.asset-roles dd {
+  margin: 0;
+}
+.private-evidence {
+  display: block !important;
+  text-decoration: none !important;
+  border-left: 2px solid #b5c9c4;
+  padding-left: 9px;
+}
+.private-evidence span {
+  display: block;
+  margin-top: 4px;
+  color: #71838a;
+  font-size: 11px;
+}
+.register-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+  margin: 16px 0;
+}
+.register-stats span {
+  background: #edf5f2;
+  padding: 10px 5px;
+  border-radius: 6px;
+  text-align: center;
+  color: #55716d;
+  font-size: 11px;
+}
+.register-stats b {
+  display: block;
+  font-size: 23px;
+  color: #17665e;
+}
+.bin-record {
+  border: 1px solid #d6e3df;
+  border-radius: 7px;
+  margin: 10px 0;
+  background: #fff;
+}
+.bin-record summary {
+  padding: 13px;
+  cursor: pointer;
+  color: #254d4a;
+  font-size: 14px;
+}
+.bin-record summary strong {
+  display: block;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.bin-record summary span {
+  display: block;
+  color: #71857e;
+  font-size: 12px;
+  margin-top: 5px;
+}
+.bin-record dl {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 5px;
+  font-size: 12px;
+  padding: 0 13px;
+  color: #657c72;
+}
+.bin-record dd {
+  margin: 0;
+}
+.bin-record .source-link {
+  margin: 12px 13px;
+}
+.bin-register .notice {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.panel-tabs [data-slot='tabs-list'] {
+  flex-wrap: wrap;
+}

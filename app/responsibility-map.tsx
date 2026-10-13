@@ -25,7 +25,13 @@ import {
   problemTypes,
   responsibilitySummary,
   mapPane,
+  detailOptions,
+  scopeMatches,
+  evidenceText,
+  areaEvidenceLabel,
+  displayDate,
 } from '@/lib/map-presentation';
+import BinRegister from './bin-register';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Select,
@@ -54,6 +60,7 @@ export default function ResponsibilityMap() {
     [ready, setReady] = useState(false),
     [issues, setIssues] = useState(all),
     [org, setOrg] = useState('all'),
+    [detail, setDetail] = useState('all'),
     [context, setContext] = useState(true),
     [details, setDetails] = useState(false),
     [query, setQuery] = useState(''),
@@ -63,9 +70,7 @@ export default function ResponsibilityMap() {
     [outside, setOutside] = useState(false),
     [message, setMessage] = useState(''),
     [legendOpen, setLegendOpen] = useState(false);
-  const selected = (r: any) =>
-    r.categories.some((c: string) => issues.includes(c)) &&
-    (org === 'all' || r.org === org);
+  const selected = (r: any) => scopeMatches(r, issues, org, detail);
   const showDetails =
     details ||
     (issues.length === 1 && ['lighting', 'water'].includes(issues[0]));
@@ -230,6 +235,7 @@ export default function ResponsibilityMap() {
               area.properties,
               issues,
               org,
+              detail,
             )) {
               const item = document.createElement('div');
               item.className = 'brief-scope';
@@ -239,6 +245,9 @@ export default function ResponsibilityMap() {
               const what = document.createElement('span');
               what.textContent = row.label + ': ' + row.tasks.join('; ');
               item.appendChild(what);
+              const evidence = document.createElement('small');
+              evidence.textContent = row.evidenceText;
+              item.appendChild(evidence);
               if (row.caveat) {
                 const note = document.createElement('small');
                 note.textContent = row.caveat;
@@ -284,7 +293,7 @@ export default function ResponsibilityMap() {
         geo.addTo(g);
       });
     pin.current?.bringToFront();
-  }, [data, ready, issues, org, context, showDetails]);
+  }, [data, ready, issues, org, detail, context, showDetails]);
   useEffect(() => {
     const context = (
       document as Document & {
@@ -452,7 +461,10 @@ export default function ResponsibilityMap() {
           </span>
         </a>
         <span className="header-note">
-          Public-source guide <span>12 September 2026</span>
+          Responsibility guide{' '}
+          <span>
+            {data?.checked ? displayDate(data.checked) : '13 October 2026'}
+          </span>
         </span>
         <button className="header-button" onClick={() => setTab('sources')}>
           <BookOpen size={16} />
@@ -507,7 +519,8 @@ export default function ResponsibilityMap() {
                 Map layers
               </TabsTrigger>
               <TabsTrigger value="contacts">Contacts</TabsTrigger>
-              <TabsTrigger value="sources">Sources</TabsTrigger>
+              <TabsTrigger value="bins">Bins</TabsTrigger>
+              <TabsTrigger value="sources">Evidence</TabsTrigger>
             </TabsList>
             <TabsContent value="map">
               {issues.includes('bins') && (
@@ -572,6 +585,33 @@ export default function ResponsibilityMap() {
                     )}
                 </SelectContent>
               </Select>
+              <label className="filter-label" htmlFor="detail-filter">
+                Western Park task detail
+              </label>
+              <Select
+                value={detail}
+                onValueChange={(v) => setDetail(v || 'all')}
+              >
+                <SelectTrigger id="detail-filter">
+                  <SelectValue>
+                    {detailOptions.find((x) => x[0] === detail)?.[1]}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {detailOptions.map(([id, label]) => (
+                    <SelectItem key={id} value={id}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {detail !== 'all' && (
+                <p className="geometry-note">
+                  Showing documented scopes for this task. Other locations may
+                  still need a contract confirmation. Choose All tasks to return
+                  to the full map.
+                </p>
+              )}
               <label className="context-toggle">
                 <Checkbox
                   checked={context}
@@ -667,15 +707,40 @@ export default function ResponsibilityMap() {
                     <span
                       className={`status ${f.properties.status === 'published' ? 'published' : ''}`}
                     >
-                      {f.properties.recordLabel ||
-                        (f.properties.context
-                          ? 'Enquiry route only'
-                          : f.properties.status === 'published'
-                            ? 'Responsibility identified in source'
-                            : 'Confirmation needed')}
+                      {areaEvidenceLabel(f.properties, issues, org, detail)}
                     </span>
                     <h3>{f.properties.name}</h3>
                     <p className="geometry-note">{f.properties.geometryNote}</p>
+                    {(f.properties.landOwner || f.properties.operator) && (
+                      <dl className="asset-roles">
+                        {f.properties.landOwner && (
+                          <>
+                            <dt>Landowner</dt>
+                            <dd>
+                              {data.organisations[f.properties.landOwner].name}
+                            </dd>
+                          </>
+                        )}
+                        {f.properties.operator && (
+                          <>
+                            <dt>Operator</dt>
+                            <dd>
+                              {data.organisations[f.properties.operator].name}
+                            </dd>
+                          </>
+                        )}
+                      </dl>
+                    )}
+                    {f.properties.roleNote && (
+                      <p className="geometry-note">{f.properties.roleNote}</p>
+                    )}
+                    {f.properties.excludedFromHomesEngland && (
+                      <p className="caution">
+                        Homes England confirmed this is an exception to its
+                        general retained-land responsibility on{' '}
+                        {displayDate(f.properties.exclusionConfirmedAt)}.
+                      </p>
+                    )}
                     {f.properties.responsibilities
                       .filter(selected)
                       .map((r: any, i: number) => (
@@ -688,26 +753,27 @@ export default function ResponsibilityMap() {
                             />
                             {data.organisations[r.org].name}
                           </h4>
-                          {r.evidence === 'enquiry' && (
-                            <span className="status">
-                              Enquiry contact; bin service unconfirmed
-                            </span>
-                          )}
-                          {r.evidence === 'historical' && (
-                            <span className="status">
-                              Historical record; confirm current service
-                            </span>
-                          )}
+                          <span
+                            className={`status ${r.evidence === 'confirmed' ? 'published' : ''}`}
+                          >
+                            {evidenceText(r)}
+                          </span>
                           <small>
                             {r.categories
                               .filter((c: string) => issues.includes(c))
                               .map(
                                 (c: string) =>
+                                  r.scopeLabels?.[c] ||
                                   categories.find((x) => x[0] === c)?.[1],
                               )
                               .join(' · ')}
                           </small>
                           <p>{r.note}</p>
+                          {r.reviewDue && (
+                            <p className="geometry-note">
+                              Suggested review by {displayDate(r.reviewDue)}
+                            </p>
+                          )}
                           {r.caveat && <p className="caution">{r.caveat}</p>}
                           <Contact
                             o={data.organisations[r.org]}
@@ -756,7 +822,7 @@ export default function ResponsibilityMap() {
                         <small>
                           {f.properties.subtitle ||
                             data.organisations[
-                              f.properties.responsibilities[0].org
+                              f.properties.responsibilities.find(selected).org
                             ].name}
                         </small>
                       </span>
@@ -767,6 +833,14 @@ export default function ResponsibilityMap() {
                 <p className="notice">
                   Select a problem type to show map areas.
                 </p>
+              )}
+            </TabsContent>
+            <TabsContent value="bins">
+              {data?.binRegister && (
+                <BinRegister
+                  register={data.binRegister}
+                  email={data.organisations.waste.email}
+                />
               )}
             </TabsContent>
             <TabsContent value="contacts">
@@ -793,19 +867,66 @@ export default function ResponsibilityMap() {
             <TabsContent value="sources">
               <h2 className="section-heading">Evidence & remaining gaps</h2>
               <p className="intro">
-                Research checked on 12 September 2026. Sources describe
-                different dates; handovers can change the answer.
+                Organisation replies reviewed on 13 October 2026. Each scope
+                retains its own confirmation date. County assets refreshed{' '}
+                {data?.audit?.countyDate
+                  ? displayDate(data.audit.countyDate)
+                  : '13 October 2026'}
+                ; OSM physical footprints remain the September snapshot.
               </p>
               <div className="notice">
                 <strong>Evidence coverage</strong>
                 <p>
                   The parish boundary is official. Asset shapes locate places
-                  and do not establish legal ownership. Broad development areas
-                  provide enquiry routes only. The county snapshot adds 50 owned
-                  lights, 176 gully records, 6 adopted highway records, 2
-                  prospective-adoption records and 11 rights-of-way records.
+                  and do not establish legal boundaries. Confirmed land/operator
+                  roles are shown separately from task-specific maintenance. The
+                  county snapshot contains 50 owned lights, 176 gully records, 6
+                  adopted highway records, 2 prospective-adoption records and 11
+                  rights-of-way records.
                 </p>
               </div>
+              <h3 className="subheading">Transfers awaiting confirmation</h3>
+              {data?.transfers?.map((t: any) => (
+                <section className="gap" key={t.id}>
+                  <strong>
+                    {t.name} — {t.status}
+                  </strong>
+                  <p>{t.note}</p>
+                  <small>
+                    Last confirmed {displayDate(t.asOf)} · Current enquiry:{' '}
+                    {data.organisations[t.currentContact].name}
+                  </small>
+                  <p className="geometry-note">{t.geometryStatus}</p>
+                  <SourceLink s={data.sources[t.source]} />
+                </section>
+              ))}
+              <h3 className="subheading">Areas awaiting a scope plan</h3>
+              {data?.unmappedAssets?.map((a: any) => (
+                <section className="gap" key={a.name}>
+                  <strong>{a.name}</strong>
+                  <p>{a.note}</p>
+                </section>
+              ))}
+              <h3 className="subheading">Keeping the register current</h3>
+              {data?.governance && (
+                <div className="notice">
+                  <strong>{data.governance.status}</strong>
+                  <p>{data.governance.note}</p>
+                  <p>
+                    {data.governance.proposedOwner}.{' '}
+                    {data.governance.reviewFrequency}.
+                  </p>
+                </div>
+              )}
+              {data?.reviews?.map((r: any) => (
+                <section className="gap" key={r.id}>
+                  <strong>{r.title}</strong>
+                  <p>{r.note}</p>
+                  <small>
+                    {r.status} · {displayDate(r.due)}
+                  </small>
+                </section>
+              ))}
               <h3 className="subheading">Information still needed</h3>
               {data?.gaps.map((g: any) => (
                 <section className="gap" key={g.id}>
@@ -829,24 +950,33 @@ export default function ResponsibilityMap() {
                 Download mapped responsibilities (GeoJSON){' '}
                 <ArrowUpRight size={14} />
               </a>
-              <h3 className="subheading">Public sources</h3>
+              <h3 className="subheading">Sources and dated confirmations</h3>
               {data &&
                 Object.entries(data.sources).map(([id, s]: [string, any]) => (
-                  <a
-                    key={id}
-                    className="evidence"
-                    href={s.url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                  <div key={id} className="evidence">
                     <span>
                       <strong>{s.title}</strong>
                       <small>
                         {s.publisher} · {s.date}
                       </small>
+                      {!s.url && (
+                        <small>
+                          {s.note ||
+                            'Original evidence held privately; public summary only.'}
+                        </small>
+                      )}
                     </span>
-                    <ArrowUpRight size={15} />
-                  </a>
+                    {s.url && (
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={'View source: ' + s.title}
+                      >
+                        <ArrowUpRight size={15} />
+                      </a>
+                    )}
+                  </div>
                 ))}
               <p className="small-print">
                 Boundary: ONS, December 2025. Contains OS and ONS data © Crown
@@ -977,14 +1107,22 @@ function Contact({ o, binService = false }: { o: any; binService?: boolean }) {
           {o.phone}
         </a>
       )}
+      {o.hours && <p className="geometry-note">{o.hours}</p>}
     </div>
   );
 }
 function SourceLink({ s }: { s: any }) {
-  return s ? (
+  return s?.url ? (
     <a className="source-link" href={s.url} target="_blank" rel="noreferrer">
       {s.title} · {s.date}
       <ArrowUpRight size={13} />
     </a>
+  ) : s ? (
+    <p className="source-link private-evidence">
+      {s.title} · {s.date}
+      <span>
+        {s.note || 'Dated evidence held privately; public summary only.'}
+      </span>
+    </p>
   ) : null;
 }

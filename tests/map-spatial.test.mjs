@@ -2,7 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { contains } from '../lib/map-spatial.ts';
-import { responsibilitySummary, mapPane } from '../lib/map-presentation.ts';
+import {
+  responsibilitySummary,
+  mapPane,
+  areaEvidenceLabel,
+} from '../lib/map-presentation.ts';
 const data = JSON.parse(
   readFileSync(
     new URL('../public/data/responsibilities.json', import.meta.url),
@@ -169,4 +173,164 @@ test('official parish outline includes western Phase 3B and distinguishes locati
   assert(!contains(boundary.features[0], [0.02, 52.285]));
   assert.equal(boundary.features[0].geometry.coordinates[0].length, 574);
   assert.equal(feature('phase3b').properties.context, true);
+});
+
+test('Western Park ownership and task maintenance remain distinct', () => {
+  const mini = feature('way-952350386').properties;
+  assert.equal(mini.landOwner, 'scdc');
+  assert.equal(mini.operator, 'elite');
+  assert.deepEqual(
+    responsibilitySummary(mini, ['play']).map((r) => r.org),
+    ['elite'],
+  );
+  const pitch = feature('way-725332121').properties;
+  assert.deepEqual(
+    responsibilitySummary(pitch, ['play'], 'all', 'pitch-base').map(
+      (r) => r.org,
+    ),
+    ['scdc'],
+  );
+  assert.deepEqual(
+    responsibilitySummary(pitch, ['play'], 'all', 'playing-surface').map(
+      (r) => r.org,
+    ),
+    ['elite'],
+  );
+  assert.equal(
+    responsibilitySummary(pitch, ['play'], 'elite', 'pitch-base').length,
+    0,
+  );
+  assert.match(areaEvidenceLabel(pitch, ['bins']), /unconfirmed/);
+  assert.match(responsibilitySummary(pitch, ['bins'])[0].label, /Enquiry/);
+});
+
+test('car-park routine care, structural repairs and EV maintenance have separate contacts', () => {
+  const park = feature('western-carpark');
+  assert.deepEqual(
+    responsibilitySummary(
+      park.properties,
+      ['roads'],
+      'all',
+      'carpark-care',
+    ).map((r) => r.org),
+    ['elite'],
+  );
+  assert.deepEqual(
+    responsibilitySummary(
+      park.properties,
+      ['roads'],
+      'all',
+      'carpark-surface',
+    ).map((r) => r.org),
+    ['scdc'],
+  );
+  assert.deepEqual(
+    responsibilitySummary(
+      park.properties,
+      ['facilities'],
+      'all',
+      'ev-charging',
+    ).map((r) => r.org),
+    ['scdc'],
+  );
+  assert.equal(
+    contains(feature('way-725827725'), park.properties.anchor),
+    false,
+  );
+  assert.equal(
+    contains(feature('bins-western'), park.properties.anchor),
+    false,
+  );
+});
+
+test('Homes England broad land scope excludes each named estate/campus exception', () => {
+  const he = data.features.filter(
+    (f) =>
+      f.properties.context &&
+      f.properties.responsibilities.some((r) => r.org === 'he'),
+  );
+  for (const id of ['inholm', 'way-905770539', 'education-campus']) {
+    const estate = feature(id);
+    for (const f of he)
+      assert(
+        !contains(f, estate.properties.anchor),
+        `${f.properties.id} incorrectly includes ${id}`,
+      );
+  }
+  const phase = feature('way-603146096').properties;
+  assert.equal(phase.responsibilities[0].evidence, 'confirmed-land');
+  assert.match(responsibilitySummary(phase, ['bins'])[0].label, /Land contact/);
+  assert.match(
+    responsibilitySummary(phase, ['bins'])[0].evidenceText,
+    /service details pending/,
+  );
+  assert.equal(
+    feature('education-campus').properties.responsibilities[0].evidence,
+    'confirmed-operator',
+  );
+  assert.equal(
+    feature('inholm').properties.responsibilities[0].evidence,
+    'enquiry',
+  );
+});
+
+test('supplied bin records retain duplicate descriptions and never invent locations or operators', () => {
+  const bins = data.binRegister.records;
+  assert.equal(bins.length, 48);
+  assert.equal(new Set(bins.map((r) => r.id)).size, 48);
+  assert(new Set(bins.map((r) => r.locationDescription)).size < 48);
+  assert.equal(bins.filter((r) => r.collectionDay === 'Wednesday').length, 46);
+  assert.equal(bins.filter((r) => r.collectionDay === 'Thursday').length, 2);
+  assert.deepEqual(
+    new Set(bins.filter((r) => r.binNumber).map((r) => r.binNumber)),
+    new Set(['1899', '9']),
+  );
+  for (const r of bins)
+    for (const k of [
+      'coordinates',
+      'collector',
+      'repairContact',
+      'collectionFrequency',
+    ])
+      assert.equal(r[k], null);
+  assert.deepEqual(
+    JSON.parse(
+      readFileSync(
+        new URL('../public/data/bin-register.json', import.meta.url),
+        'utf8',
+      ),
+    ),
+    data.binRegister,
+  );
+});
+
+test('pending transfers and register ownership are not prematurely confirmed', () => {
+  assert.equal(data.transfers.length, 3);
+  for (const t of data.transfers) {
+    assert.equal(t.status, 'Transfer pending');
+    assert.equal(t.asOf, '2026-09-15');
+    assert.notEqual(t.currentContact, 'scdc');
+  }
+  assert.equal(data.governance.owner, null);
+  assert(data.reviews.every((r) => r.status === 'Suggested review'));
+});
+
+test('public evidence summaries exclude received emails, restricted title-plan images and staff routing addresses', () => {
+  const json = JSON.stringify(data);
+  assert.doesNotMatch(
+    json,
+    /\.msg|Thomas\.parker@|Kate\.Swan@|Lia\.Howlett@|CB478514/i,
+  );
+  for (const id of [
+    'response-scdc',
+    'response-he',
+    'response-bins',
+    'response-western',
+  ])
+    assert.equal(data.sources[id].url, null);
+  assert.equal(data.audit.countyDate, '2026-10-13');
+  for (const f of data.features.filter((f) => f.properties.sourceAttributes)) {
+    assert.equal(f.properties.checked, data.audit.countyDate);
+    assert.equal(f.properties.id, f.properties.sourceAttributes.source_id);
+  }
 });
