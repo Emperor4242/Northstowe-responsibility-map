@@ -16,6 +16,16 @@ import {
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '@/components/ui/collapsible';
+import {
+  problemTypes,
+  responsibilitySummary,
+  mapPane,
+} from '@/lib/map-presentation';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Select,
@@ -31,15 +41,7 @@ import 'leaflet/dist/leaflet.css';
 import './map-theme.css';
 
 type F = any;
-const categories = [
-  ['green', 'Grass, trees & planting'],
-  ['water', 'Lakes & drainage'],
-  ['roads', 'Roads & paths'],
-  ['lighting', 'Lighting'],
-  ['play', 'Play & sports'],
-  ['waste', 'Litter & fly-tipping'],
-  ['facilities', 'Community facilities'],
-];
+const categories = problemTypes;
 const all = categories.map((c) => c[0]);
 export default function ResponsibilityMap() {
   const node = useRef<HTMLDivElement>(null),
@@ -59,7 +61,8 @@ export default function ResponsibilityMap() {
     [point, setPoint] = useState<number[] | null>(null),
     [hits, setHits] = useState<F[]>([]),
     [outside, setOutside] = useState(false),
-    [message, setMessage] = useState('');
+    [message, setMessage] = useState(''),
+    [legendOpen, setLegendOpen] = useState(false);
   const selected = (r: any) =>
     r.categories.some((c: string) => issues.includes(c)) &&
     (org === 'all' || r.org === org);
@@ -96,6 +99,15 @@ export default function ResponsibilityMap() {
           maxZoom: 20,
         });
         map.current = m;
+        for (const [name, z] of [
+          ['enquiryAreas', 401],
+          ['responsibilityAreas', 410],
+          ['responsibilityRoads', 430],
+          ['responsibilityPoints', 450],
+          ['parishBoundary', 460],
+        ] as const) {
+          m.createPane(name).style.zIndex = String(z);
+        }
         const tiles = L.tileLayer(
           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           {
@@ -112,6 +124,7 @@ export default function ResponsibilityMap() {
             );
         });
         L.geoJSON(b, {
+          pane: 'parishBoundary',
           interactive: false,
           style: {
             color: '#344954',
@@ -156,6 +169,7 @@ export default function ResponsibilityMap() {
       pin.current?.remove();
       pin.current = Lref.current
         .circleMarker([lat, lng], {
+          pane: 'responsibilityPoints',
           radius: 7,
           color: '#163542',
           weight: 3,
@@ -169,6 +183,7 @@ export default function ResponsibilityMap() {
     const L = Lref.current,
       g = layer.current;
     if (!data || !L || !g) return;
+    map.current?.closePopup();
     g.clearLayers();
     data.features
       .filter(matches)
@@ -181,18 +196,21 @@ export default function ResponsibilityMap() {
           r = p.responsibilities.find(selected),
           color = data.organisations[r.org].color;
         const geo = L.geoJSON(f, {
+          pane: mapPane(f.geometry.type, p.context),
           style: {
             color,
-            weight: p.context ? 1.5 : f.geometry.type.includes('Line') ? 4 : 2,
+            weight: p.context ? 1.5 : f.geometry.type.includes('Line') ? 7 : 2,
             fillColor: color,
             fillOpacity: p.context ? 0.06 : 0.25,
             dashArray:
-              p.geometryStatus === 'indicative' || p.context
+              (p.geometryStatus === 'indicative' || p.context) &&
+              !f.geometry.type.includes('Line')
                 ? '6 4'
                 : undefined,
           },
           pointToLayer: (_, ll) =>
             L.circleMarker(ll, {
+              pane: 'responsibilityPoints',
               radius: p.detail ? 4 : 7,
               color: 'white',
               weight: 1.5,
@@ -200,9 +218,69 @@ export default function ResponsibilityMap() {
               fillOpacity: 1,
             }),
         });
-        const t = document.createElement('span');
-        t.textContent = p.name + (p.context ? ' · enquiry area' : '');
-        geo.bindTooltip(t, { sticky: true });
+        const summary = (areas: F[]) => {
+          const box = document.createElement('div');
+          box.className = 'responsibility-brief';
+          for (const area of areas.slice(0, 5)) {
+            const heading = document.createElement('strong');
+            heading.className = 'brief-place';
+            heading.textContent = area.properties.name;
+            box.appendChild(heading);
+            for (const row of responsibilitySummary(
+              area.properties,
+              issues,
+              org,
+            )) {
+              const item = document.createElement('div');
+              item.className = 'brief-scope';
+              const who = document.createElement('b');
+              who.textContent = data.organisations[row.org].name;
+              item.appendChild(who);
+              const what = document.createElement('span');
+              what.textContent = row.label + ': ' + row.tasks.join('; ');
+              item.appendChild(what);
+              if (row.caveat) {
+                const note = document.createElement('small');
+                note.textContent = row.caveat;
+                item.appendChild(note);
+              }
+              box.appendChild(item);
+            }
+          }
+          if (areas.length > 5) {
+            const more = document.createElement('small');
+            more.textContent =
+              'More matches and sources appear in the location details.';
+            box.appendChild(more);
+          }
+          return box;
+        };
+        const near = (lat: number, lng: number) => {
+          const nearby = data.features
+            .filter(matches)
+            .filter((a: F) => contains(a, [lng, lat]));
+          const specific = nearby.filter((a: F) => !a.properties.context);
+          return specific.length ? specific : nearby.length ? nearby : [f];
+        };
+        geo.bindTooltip(summary([f]), {
+          sticky: true,
+          className: 'scope-tooltip',
+        });
+        geo.on('mousemove', (e: Leaflet.LeafletMouseEvent) =>
+          geo.setTooltipContent(summary(near(e.latlng.lat, e.latlng.lng))),
+        );
+        geo.on('click', (e: Leaflet.LeafletMouseEvent) => {
+          selectRef.current(e.latlng.lat, e.latlng.lng);
+          L.popup({
+            maxWidth: 330,
+            maxHeight: 260,
+            autoPan: false,
+            className: 'scope-popup',
+          })
+            .setLatLng(e.latlng)
+            .setContent(summary(near(e.latlng.lat, e.latlng.lng)))
+            .openOn(map.current!);
+        });
         geo.addTo(g);
       });
     pin.current?.bringToFront();
@@ -432,6 +510,17 @@ export default function ResponsibilityMap() {
               <TabsTrigger value="sources">Sources</TabsTrigger>
             </TabsList>
             <TabsContent value="map">
+              {issues.includes('bins') && (
+                <div className="coverage-note">
+                  <Info size={17} />
+                  <p>
+                    Public-bin emptying is separate from litter clearance and
+                    household collections. Historical service areas are marked;
+                    other areas show an enquiry contact until the bin’s operator
+                    is confirmed.
+                  </p>
+                </div>
+              )}
               <div className="row-heading">
                 <h2>What needs attention?</h2>
                 <button
@@ -599,6 +688,16 @@ export default function ResponsibilityMap() {
                             />
                             {data.organisations[r.org].name}
                           </h4>
+                          {r.evidence === 'enquiry' && (
+                            <span className="status">
+                              Enquiry contact; bin service unconfirmed
+                            </span>
+                          )}
+                          {r.evidence === 'historical' && (
+                            <span className="status">
+                              Historical record; confirm current service
+                            </span>
+                          )}
                           <small>
                             {r.categories
                               .filter((c: string) => issues.includes(c))
@@ -610,7 +709,14 @@ export default function ResponsibilityMap() {
                           </small>
                           <p>{r.note}</p>
                           {r.caveat && <p className="caution">{r.caveat}</p>}
-                          <Contact o={data.organisations[r.org]} />
+                          <Contact
+                            o={data.organisations[r.org]}
+                            binService={
+                              r.org === 'waste' &&
+                              r.categories.includes('bins') &&
+                              issues.includes('bins')
+                            }
+                          />
                           {r.sources.map((id: string) => (
                             <SourceLink key={id} s={data.sources[id]} />
                           ))}
@@ -795,31 +901,41 @@ export default function ResponsibilityMap() {
               </button>
             </div>
           )}
-          <div className="legend">
-            <h2>Responsibility</h2>
-            <div>
-              {data &&
-                Object.entries(data.organisations)
-                  .filter(([id]) =>
-                    visible.some((f: F) =>
-                      f.properties.responsibilities.some(
-                        (r: any) => r.org === id && selected(r),
+          <Collapsible
+            className="legend"
+            open={legendOpen}
+            onOpenChange={setLegendOpen}
+          >
+            <CollapsibleTrigger className="legend-toggle">
+              <Layers size={16} />
+              {legendOpen ? 'Hide map key' : 'Show map key'}
+              <ChevronRight size={15} className={legendOpen ? 'rotated' : ''} />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="legend-items">
+                {data &&
+                  Object.entries(data.organisations)
+                    .filter(([id]) =>
+                      visible.some((f: F) =>
+                        f.properties.responsibilities.some(
+                          (r: any) => r.org === id && selected(r),
+                        ),
                       ),
-                    ),
-                  )
-                  .map(([id, o]: [string, any]) => (
-                    <span key={id}>
-                      <i style={{ background: o.color }} />
-                      {o.shortName || o.name}
-                    </span>
-                  ))}
-            </div>
-            <p>
-              <b />
-              Parish boundary <em />
-              Indicative / enquiry area
-            </p>
-          </div>
+                    )
+                    .map(([id, o]: [string, any]) => (
+                      <span key={id}>
+                        <i style={{ background: o.color }} />
+                        {o.shortName || o.name}
+                      </span>
+                    ))}
+              </div>
+              <p>
+                <b />
+                Parish boundary <em />
+                Indicative / enquiry area
+              </p>
+            </CollapsibleContent>
+          </Collapsible>
           <div className="map-footer">
             <Info size={14} />
             Select a place to see contacts and exceptions
@@ -829,17 +945,23 @@ export default function ResponsibilityMap() {
     </main>
   );
 }
-function Contact({ o }: { o: any }) {
+function Contact({ o, binService = false }: { o: any; binService?: boolean }) {
   return (
     <div className="contact-links">
       {o.reportUrl && (
         <a
           className="report-link"
-          href={o.reportUrl}
+          href={
+            binService
+              ? 'https://greatercambridgewaste.org/litter-in-public-spaces/street-care-and-cleaning-south-cambs'
+              : o.reportUrl
+          }
           target="_blank"
           rel="noreferrer"
         >
-          {o.reportLabel || 'Report or contact'}
+          {binService
+            ? 'Identify / report a council bin'
+            : o.reportLabel || 'Report or contact'}
           <ArrowUpRight size={14} />
         </a>
       )}

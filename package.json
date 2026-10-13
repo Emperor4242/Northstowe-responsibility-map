@@ -9,6 +9,9 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "wrangler dev --config dist/server/wrangler.json",
+    "local:build": "vite build --config vite.local.config.ts",
+    "local:start": "node scripts/local-server.mjs",
+    "test:map": "node --experimental-strip-types --test tests/map-spatial.test.mjs",
     "lint": "oxlint",
     "format": "oxfmt"
   },

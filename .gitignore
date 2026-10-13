@@ -40,3 +40,7 @@ next-env.d.ts
 /research-boundaries/
 /archives/
 *.tsbuildinfo
+/local-dist/
+/.local-runtime/
+/email-drafts/
+/Northstowe emails/

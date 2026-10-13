@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {contains} from '../lib/map-spatial.ts';
+import {responsibilitySummary,mapPane} from '../lib/map-presentation.ts';
 const data=JSON.parse(readFileSync(new URL('../public/data/responsibilities.json',import.meta.url),'utf8'));
 const boundary=JSON.parse(readFileSync(new URL('../public/data/parish.geojson',import.meta.url),'utf8'));
 const feature=id=>data.features.find(f=>f.properties.id===id);
@@ -42,11 +43,42 @@ test('register has unique IDs, sources, categories and a usable contact for ever
   const o=data.organisations[r.org];assert(o,f.properties.name);
   assert(o.reportUrl||o.email||o.phone);assert(r.sources.length);
   for(const id of r.sources)assert(data.sources[id],id);
-  for(const c of r.categories)assert(['green','water','roads','lighting','play','waste','facilities'].includes(c));
+  for(const c of r.categories)assert(['green','water','roads','lighting','play','bins','waste','facilities'].includes(c));
  }
  assert.equal(data.audit.counts.features,data.features.length);
  assert.equal(data.organisations.ntc.email,'admin@northstowe-tc.gov.uk');
  assert.equal(data.organisations.uc.email,'Northstowe@urbanandcivic.com');
+});
+
+test('hover summaries show selected tasks and organisations and preserve overlapping scopes',()=>{
+ const lake=feature('way-725827723').properties;
+ const rows=responsibilitySummary(lake,['roads'],'aw');
+ assert.equal(rows.length,1);assert.equal(rows[0].org,'aw');
+ assert.deepEqual(rows[0].tasks,['Paths around Bug Hunter Waters']);
+ assert.equal(responsibilitySummary(lake,['roads'],'he').length,0);
+ const h4=responsibilitySummary(feature('parcel-H4').properties,['green']);
+ assert.deepEqual(new Set(h4.map(r=>r.org)),new Set(['greenbelt','vistry']));
+});
+
+test('public bin emptying is separate and historical or unconfirmed service is labelled honestly',()=>{
+ const aw=feature('bins-bughunter').properties;
+ assert.equal(responsibilitySummary(aw,['waste']).length,0);
+ assert.match(responsibilitySummary(aw,['bins'])[0].label,/confirm scope/);
+ assert.match(responsibilitySummary(aw,['bins'])[0].caveat,/March 2025/);
+ const unknown=data.features.filter(f=>f.properties.id.startsWith('bin-node-'));
+ assert.equal(unknown.length,5);
+ for(const f of unknown)assert.equal(responsibilitySummary(f.properties,['bins'])[0].label,'Enquiry contact for');
+});
+
+test('Homes England roads remain above area layers with a published contact and adoption caveat',()=>{
+ for(const id of ['stirling-phase2','southern-access-road']){
+  const f=feature(id);assert.equal(mapPane(f.geometry.type,f.properties.context),'responsibilityRoads');
+  assert(f.properties.responsibilities.some(r=>r.org==='he'&&r.categories.includes('roads')));
+  assert.match(f.properties.responsibilities[0].caveat,/adoption/);
+ }
+ assert.equal(mapPane('Polygon',true),'enquiryAreas');
+ assert.equal(mapPane('Polygon'),'responsibilityAreas');
+ assert.equal(mapPane('Point'),'responsibilityPoints');
 });
 test('official parish outline includes western Phase 3B and distinguishes locations beyond the boundary',()=>{
  assert(contains(boundary.features[0],[.043,52.292]));
