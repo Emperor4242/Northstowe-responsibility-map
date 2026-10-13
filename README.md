@@ -12,13 +12,15 @@ Requires Node 22.13+ and pnpm. Run `pnpm install` and `pnpm dev`. The applicatio
 
 ## Data maintenance
 
-Migration checkpoint, 13 October 2026: the reviewed public assets were recovered byte-for-byte from the saved local app, and the original tracked research scripts were restored from Git. The raw research downloads and the later `review-map-data.py` and `prepare-email-drafts.py` helpers were not migrated. Preserve this recovered snapshot; restore those missing inputs/helpers before regenerating the dataset, because the historical scripts alone do not reproduce the later road/bin review. Existing private email drafts and received correspondence remain local and are excluded from Git.
+Migration audit, 13 October 2026: compared project source, data, research and documents with the original folder on E:. Restored 64 omitted files, including raw research, boundary datasets and the two later helper scripts. Restored the original runtime/test files while retaining the additional correspondence privacy check. Private email drafts, received correspondence and research downloads remain local and are excluded from Git. Generated caches, old process state and dependency folders are recreated for this computer rather than copied from the old profile.
 
 Canonical client files are `public/data/responsibilities.json` and `public/data/parish.geojson`. Each area carries a geometry note, evidence status, source IDs and one or more category-specific responsibility records. An enquiry area must not be promoted to confirmed maintenance merely because a development has been built or a transfer was expected.
 
 Rebuild data in this order: `scripts/build-map-data.py`, `scripts/extend-map-data.py`, `scripts/finalise-map-data.py`, then `scripts/review-map-data.py`. Generate the private review pack with `scripts/prepare-email-drafts.py`. The original research downloads and local Python GIS dependencies are retained in the councillor’s workspace under `research/` and `research-boundaries/`, excluded from the hosted source repository. The fetch and conversion scripts preserve the public county query, raw responses and source IDs. Avoid silently reusing stale snapshots as new data.
 
 The county query uses a bounded public WFS request, then tests exact intersection against the parish in British National Grid before converting to longitude/latitude. It retains complete edge features. County centreline geometry does not represent the legal highway width. Four returned district residential holdings are excluded from public-realm scope.
+
+The recovered research scripts use Python GIS packages from `research-boundaries/_deps`. Recreate them on a new computer with `python -m pip install --target research-boundaries/_deps shapely==2.1.2 pyproj==3.8.0 certifi==2026.7.22` (NumPy is also required and is installed as a Shapely dependency). This directory is ignored; retain the original research files and provenance separately from the Git source backup.
 
 Validation: `pnpm exec tsc --noEmit`; `node --experimental-strip-types --test tests/map-spatial.test.mjs`; Sites build helper. Spatial checks cover lake contacts, overlapping H4 scopes, sports exceptions, prospective adoption, county asset IDs, source integrity and parish coverage.
 
