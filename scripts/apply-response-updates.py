@@ -91,6 +91,19 @@ def way_geometry(id):
  w=ways[id];refs=[n.attrib['ref'] for n in w.findall('nd')];coords=[nodes[n] for n in refs]
  return Polygon(coords) if refs[0]==refs[-1] else LineString(coords)
 
+# The councillor identified this existing OSM parcel on 15 October. The district
+# reply establishes the landowner, not every service contract or a completed transfer.
+faith=add('way-725332128','Faith / community land — Urban & Civic enquiry',shape(byid['way/725332128']['geometry']),[
+ r('uc',['green','water','roads','lighting','play','bins','waste','facilities'],
+   'Urban & Civic is the landowner and enquiry contact for this plot, according to the district council reply of 15 September 2026.',
+   evidence='confirmed-land',date='2026-09-15',sources=['response-scdc','osm','contacts'],scopeType='land-contact',
+   caveat='Transfer to SCDC and a subsequent faith/community lease were proposed; completion has not been confirmed. Individual maintenance contracts, including bin emptying, remain unconfirmed.')],
+ status='uncertain',geometryStatus='indicative',
+ geometryNote='Existing OpenStreetMap outline, way 725332128, labelled Faith / community land. Identified by the councillor on 15 October 2026. Used for orientation, not a surveyed ownership or maintenance boundary.',
+ geometryUrl='https://www.openstreetmap.org/way/725332128',landOwner='uc',ownershipConfirmedAt='2026-09-15',ownershipSource='response-scdc',
+ transferStatus='Transfer pending',proposedRecipient='scdc',checked='2026-10-15',
+ recordLabel='Landowner confirmed; transfer pending',roleNote='Urban & Civic landownership confirmed in the September reply. Proposed transfer to SCDC remains unconfirmed; contact Urban & Civic about the land and the relevant service.')
+
 # Task-specific Western Park scopes. Ownership does not duplicate repair responsibility.
 western_ids=['way-725332125','way-725332121','way-952350385','way-1030629199','way-952350386','way-929650245']
 for id in western_ids:
@@ -183,7 +196,7 @@ for row in rows[1:]:
 assert len(bins)==48
 d['binRegister']=dict(records=bins,source='response-bins',reviewedAt='2026-10-13',serviceEffectiveDate=None,note='The supplied document lists 48 separate records. Repeated descriptions are retained. Collection days are transcribed; a weekday is not confirmation of frequency or contractor. Coordinates and the covering service confirmation are still needed.',counts=dict(total=48,Wednesday=46,Thursday=2,geolocated=0,numbered=2))
 d['transfers']=[
- dict(id='faith-community',name='Phase 1 Faith and Community Land',currentContact='uc',proposedRecipient='SCDC, then the selected faith/community organisation',status='Transfer pending',asOf='2026-09-15',note='District reply says the land remained with Urban & Civic; a future SCDC transfer/lease was expected.',geometryStatus='No confirmed boundary supplied',source='response-scdc'),
+ dict(id='faith-community',name='Phase 1 Faith and Community Land',currentContact='uc',proposedRecipient='SCDC, then the selected faith/community organisation',status='Transfer pending',asOf='2026-09-15',note='District reply says the land remained with Urban & Civic; a future SCDC transfer/lease was expected. The existing OSM footprint is now mapped as a landowner enquiry.',geometryStatus='Indicative OSM footprint mapped; not a surveyed ownership boundary',featureId='way-725332128',source='response-scdc'),
  dict(id='eastern-sports',name='Eastern Sports Hub',currentContact='he',proposedRecipient='South Cambridgeshire District Council',status='Transfer pending',asOf='2026-09-15',note='Homes England remained responsible until the land transfer completed.',geometryStatus='Proposed location only; transfer extent not supplied',source='response-scdc'),
  dict(id='town-hub',name='Town Hub',currentContact='he',proposedRecipient='South Cambridgeshire District Council',status='Transfer pending',asOf='2026-09-15',note='The future Town Hub is distinct from the existing Unity Centre lease. No completed transfer was reported.',geometryStatus='No confirmed boundary supplied',source='response-scdc')]
 d['unmappedAssets']=[dict(name='Local Centre and Enterprise Zone',owner='scdc',note='District council confirms land holdings. Its Commercial Assets team must supply public-realm boundaries, contracts and bin arrangements.',source='response-scdc'),dict(name='Unity Centre lease extent / Parcel 6',owner='scdc',operator='ntc',note='Town Council leasehold is part of Local Centre Parcel 6. A lease scope plan is needed for surrounding assets.',source='response-scdc')]
@@ -196,13 +209,15 @@ gaps['phase3']['detail']='Homes England confirmed its retained-land role in Phas
 gaps['bins']['detail']='48 supplied bin records are now searchable, with 46 Wednesday and 2 Thursday entries. Coordinates, most bin IDs, the service provider, repair contact, frequency and effective date remain unconfirmed.'
 gaps['estate']['detail']='The HE exceptions are mapped indicatively. Current RMG/Keepmoat estate appointments and maintenance schedules still need confirmation; Meridian’s campus enquiry is distinct from P&E Sports services.'
 gaps['review']['detail']='The district Communities Team cannot maintain the register. Agree a nominated Town Council editor and partner review process; proposed review dates are displayed but not agreed obligations.'
-d['checked']='2026-10-13';d['responseUpdateVersion']=1
+d['checked']='2026-10-15';d['responseUpdateVersion']=2
 d['audit']['counts'].update(features=len(fs),organisations=len(orgs));d['audit']['binRegisterRecords']=48;d['audit']['correspondenceDates']=['2026-09-15','2026-09-17'];d['audit']['responseReviewed']='2026-10-13'
+d['audit']['faithCommunityMapped']='2026-10-15'
 d['audit']['note']='Correspondence reviewed 13 October 2026. County records refreshed '+county_date+'; OSM remains the 11 September snapshot. Confirmation of a landowner or operator does not establish every maintenance contract; exact boundaries and current transfers remain subject to review.'
 (out/'responsibilities.json').write_text(json.dumps(d,ensure_ascii=False,separators=(',',':')),encoding='utf8')
 (out/'responsibility-areas.geojson').write_text(json.dumps(dict(type='FeatureCollection',features=fs),ensure_ascii=False,separators=(',',':')),encoding='utf8')
 (out/'bin-register.json').write_text(json.dumps(d['binRegister'],ensure_ascii=False,indent=2),encoding='utf8')
 notes=['# Northstowe responsibility register','Updated from organisation replies: 13 October 2026. County records refreshed '+county_date+'; OSM physical footprints remain the 11 September snapshot.','','## Confirmations','Western Park: operator and district repair scopes are separate. Mini/grass pitches route to Elite Sports; shock pads/sublayers and car-park surface/EV assets route to SCDC. Surrounding landscaping and the historical L&Q accessway still need exact current boundaries.','Homes England: retained land in Phases 2, 3A and 3B, with explicit Inholm, Stirling Fields and Education Campus exceptions. This is a confirmed land contact, not a verified inventory of every maintenance service.','Lighting: county MyMaps identifies adopted assets; Balfour Beatty reporting and HDM escalation are recorded. The refreshed inventory retains 50 explicitly county-owned light points, 6 adopted-highway records, 2 prospective records, 176 gullies and 11 rights-of-way records.','Bins: 48 unlocated schedule records; 46 Wednesday, 2 Thursday; only 2 supplied bin numbers. No contractor or repair responsibility inferred.','','## Ownership, contracts and transfers','SCDC owns the identified Western Park sports facilities and allotment/orchard land. NHA operates the allotment/orchard under licence. The title-plan image or traced boundary is not republished. Pending Faith/Community, Eastern Sports Hub and Town Hub transfers retain their last confirmed contacts.','','## Remaining gaps']
+notes[2:2]=['Faith / community land added 15 October 2026 using existing OSM way 725332128, identified by the councillor. Urban & Civic is the confirmed landowner/enquiry contact in the 15 September reply; SCDC transfer remains pending. Service contracts and the surveyed boundary are not established by this footprint.']
 for g in d['gaps']:notes += [f"### {g['title']}",g['detail'],'Information holder: '+g['holder']]
 notes+=['','## Sources']
 for id,s in src.items():notes.append(f"- {id}: {s['title']} — {s['publisher']}; {s['date']}. "+(s['url'] if s.get('url') else 'Original evidence held privately; public summary only.'))

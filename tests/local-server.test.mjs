@@ -20,7 +20,10 @@ test('served register contains reviewed roads, bin scopes and current contact ad
   const r = await fetch(base + '/data/responsibilities.json');
   assert.equal(r.status, 200);
   const d = await r.json();
-  assert.equal(d.features.length, 316);
+  assert.equal(d.features.length, 317);
+  const faith = d.features.find((f) => f.properties.id === 'way-725332128');
+  assert.equal(faith.properties.landOwner, 'uc');
+  assert.equal(faith.properties.transferStatus, 'Transfer pending');
   assert.equal(d.organisations.elite.email, 'westernpark@elitesportsuk.com');
   assert(d.features.some((f) => f.properties.id === 'bins-bughunter'));
   assert(d.features.some((f) => f.properties.id === 'western-carpark'));

@@ -315,6 +315,52 @@ test('pending transfers and register ownership are not prematurely confirmed', (
   assert(data.reviews.every((r) => r.status === 'Suggested review'));
 });
 
+test('Faith/community parcel routes every problem filter to Urban & Civic as land contact, not county maintenance', () => {
+  const f = feature('way-725332128');
+  const p = [0.065019, 52.284722];
+  assert(contains(f, p));
+  assert.equal(f.properties.geometryStatus, 'indicative');
+  assert.equal(f.properties.landOwner, 'uc');
+  assert.equal(f.properties.ownershipConfirmedAt, '2026-09-15');
+  assert.equal(f.properties.transferStatus, 'Transfer pending');
+  assert.equal(f.properties.proposedRecipient, 'scdc');
+  assert.equal(
+    f.properties.geometryUrl,
+    'https://www.openstreetmap.org/way/725332128',
+  );
+  for (const category of [
+    'green',
+    'water',
+    'roads',
+    'lighting',
+    'play',
+    'bins',
+    'waste',
+    'facilities',
+  ]) {
+    const rows = responsibilitySummary(f.properties, [category]);
+    assert.deepEqual(
+      rows.map((r) => r.org),
+      ['uc'],
+    );
+    assert.match(rows[0].label, /Land contact/);
+    assert.match(rows[0].evidenceText, /service details pending/);
+    assert.match(rows[0].caveat, /completion has not been confirmed/);
+    assert.deepEqual(contacts(p, category), ['uc']);
+    assert.equal(
+      responsibilitySummary(f.properties, [category], 'ccc').length,
+      0,
+    );
+  }
+  const transfer = data.transfers.find((t) => t.id === 'faith-community');
+  assert.equal(transfer.featureId, f.properties.id);
+  assert.equal(transfer.currentContact, 'uc');
+  assert.equal(transfer.status, 'Transfer pending');
+  // Adjacent highways retain their separate enquiry/adoption records.
+  assert(feature('parish-highways').properties.context);
+  assert.equal(data.audit.counts.adopted_records, 6);
+});
+
 test('public evidence summaries exclude received emails, restricted title-plan images and staff routing addresses', () => {
   const json = JSON.stringify(data);
   assert.doesNotMatch(

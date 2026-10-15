@@ -22,6 +22,8 @@ The October update separates Western Park playing surfaces, pitch bases, routine
 
 The county query uses a bounded public WFS request, then tests exact intersection against the parish in British National Grid before converting to longitude/latitude. It retains complete edge features. County centreline geometry does not represent the legal highway width. Four returned district residential holdings are excluded from public-realm scope.
 
+15 October correction: the existing OSM Faith / community land outline (way 725332128), identified by the councillor, is now mapped with Urban & Civic as the landowner/enquiry contact. The September district reply supports that role; transfer to SCDC remains pending and individual maintenance contracts are unconfirmed. The mapped footprint is indicative. County highway enquiries and adjacent adopted assets remain separate from this parcel's land responsibility. A regression check covers all eight problem filters; the combined suite now has 18 checks. All 316 existing features remain unchanged.
+
 The recovered research scripts use Python GIS packages from `research-boundaries/_deps`. Recreate them on a new computer with `python -m pip install --target research-boundaries/_deps shapely==2.1.2 pyproj==3.8.0 certifi==2026.7.22` (NumPy is also required and is installed as a Shapely dependency). This directory is ignored; retain the original research files and provenance separately from the Git source backup.
 
 Validation: `pnpm exec tsc --noEmit`; `node --experimental-strip-types --test tests/map-spatial.test.mjs`; Sites build helper. Spatial checks cover lake contacts, overlapping H4 scopes, sports exceptions, prospective adoption, county asset IDs, source integrity and parish coverage.

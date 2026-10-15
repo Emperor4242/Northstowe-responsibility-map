@@ -1,5 +1,6 @@
 # Northstowe responsibility register
 Updated from organisation replies: 13 October 2026. County records refreshed 2026-10-13; OSM physical footprints remain the 11 September snapshot.
+Faith / community land added 15 October 2026 using existing OSM way 725332128, identified by the councillor. Urban & Civic is the confirmed landowner/enquiry contact in the 15 September reply; SCDC transfer remains pending. Service contracts and the surveyed boundary are not established by this footprint.
 
 ## Confirmations
 Western Park: operator and district repair scopes are separate. Mini/grass pitches route to Elite Sports; shock pads/sublayers and car-park surface/EV assets route to SCDC. Surrounding landscaping and the historical L&Q accessway still need exact current boundaries.
@@ -1071,6 +1072,9 @@ OpenStreetMap bin point, not an operator or contract record. Check that the bin 
 ### Mapped public bin — service not confirmed (12079193141)
 OpenStreetMap bin point, not an operator or contract record. Check that the bin is still present.
 - Homes England: This bin point is in the Phase 2 area. Ask Homes England to identify the collection service. Location is mapped; the emptying contractor and bin identifier are not verified. Evidence: enquiry; confirmed: not supplied. Sources: osm, faq.
+### Faith / community land — Urban & Civic enquiry
+Existing OpenStreetMap outline, way 725332128, labelled Faith / community land. Identified by the councillor on 15 October 2026. Used for orientation, not a surveyed ownership or maintenance boundary.
+- Urban & Civic: Urban & Civic is the landowner and enquiry contact for this plot, according to the district council reply of 15 September 2026. Transfer to SCDC and a subsequent faith/community lease were proposed; completion has not been confirmed. Individual maintenance contracts, including bin emptying, remain unconfirmed. Evidence: confirmed-land; confirmed: 2026-09-15. Sources: response-scdc, osm, contacts.
 ### Western Park — car park
 OpenStreetMap physical footprint used for orientation, not a surveyed ownership or contract boundary.
 - Elite Sports / E.S.C.D. UK Ltd: Elite Sports handles car-park general maintenance, cleaning and management.  Evidence: confirmed; confirmed: 2026-09-15. Sources: response-scdc, response-western.
