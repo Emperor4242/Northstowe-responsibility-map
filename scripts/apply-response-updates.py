@@ -91,6 +91,27 @@ def way_geometry(id):
  w=ways[id];refs=[n.attrib['ref'] for n in w.findall('nd')];coords=[nodes[n] for n in refs]
  return Polygon(coords) if refs[0]==refs[-1] else LineString(coords)
 
+# Complete the H12 enquiry coverage using the same plan/control transform as H1–H11.
+# The OSM residential outline alone omits Warren Way. This remains an interpretation
+# of a published parcel plan, not confirmation of current ownership or service duties.
+h12_pixels=[[723,649],[741,680],[758,708],[783,751],[806,785],[809,804],[802,837],[777,904],[737,890],[698,917],[721,946],[666,984],[619,883],[651,861],[635,830],[618,829],[622,765],[624,734],[632,710],[648,693]]
+plan_transform=json.loads((ROOT/'research/plan-transform.json').read_text(encoding='utf8'))
+h12_plan=Polygon([[x*plan_transform[0][0]+y*plan_transform[1][0]+plan_transform[2][0],x*plan_transform[0][1]+y*plan_transform[1][1]+plan_transform[2][1]] for x,y in h12_pixels])
+h12_osm=shape(byid['way/1187799861']['geometry'])
+protected=unary_union([shape(feature(id)['geometry']) for id in ['way-725827724','way-725827723']])
+h12_shape=unary_union([h12_osm,h12_plan.difference(protected)])
+assert h12_shape.is_valid and not h12_shape.is_empty
+h12=feature('way-1187799861');h12['geometry']=mapping(h12_shape)
+h12['properties'].update(name='H12 / Warren Way — Linden / Vistry developer enquiry',subtitle='Current maintenance and transfers to be confirmed',
+ status='uncertain',geometryStatus='indicative',checked='2026-10-15',anchor=list(h12_shape.representative_point().coords[0]),
+ geometryNote='Indicative H12 outline hand-digitised from Greenbelt’s 10 September 2025 parcel plan using the existing approximate plan alignment, combined with OSM way 1187799861. Extends enquiry coverage around Warren Way. Separately mapped Southern Greenway and Bug Hunter Waters land are excluded from the extension. Not a surveyed ownership, highway-adoption or maintenance boundary.',
+ geometryUrl=src['greenbelt']['url'],recordLabel='Developer enquiry; current service unconfirmed',
+ responsibilities=[r('vistry',['green','water','roads','lighting','play','bins','waste','facilities'],
+ 'Linden Homes / Vistry is the developer enquiry route for H12, including Warren Way, as located using the published parcel plan.',
+ evidence='enquiry',date=None,sources=['greenbelt','report'],scopeType='developer-contact',
+ caveat='Current maintenance contracts and subsequent handovers are unconfirmed. This enquiry area does not establish current landownership, highway adoption or responsibility for every private property, tree or bin.')],
+ geometryInterpretation=dict(source='greenbelt',method='Hand-digitised H12 outline; existing affine control fit; union with original OSM residential footprint; separate greenway/lake land excluded from extension',pixelOutline=h12_pixels,transform=plan_transform))
+
 # The councillor identified this existing OSM parcel on 15 October. The district
 # reply establishes the landowner, not every service contract or a completed transfer.
 faith=add('way-725332128','Faith / community land — Urban & Civic enquiry',shape(byid['way/725332128']['geometry']),[
@@ -209,15 +230,17 @@ gaps['phase3']['detail']='Homes England confirmed its retained-land role in Phas
 gaps['bins']['detail']='48 supplied bin records are now searchable, with 46 Wednesday and 2 Thursday entries. Coordinates, most bin IDs, the service provider, repair contact, frequency and effective date remain unconfirmed.'
 gaps['estate']['detail']='The HE exceptions are mapped indicatively. Current RMG/Keepmoat estate appointments and maintenance schedules still need confirmation; Meridian’s campus enquiry is distinct from P&E Sports services.'
 gaps['review']['detail']='The district Communities Team cannot maintain the register. Agree a nominated Town Council editor and partner review process; proposed review dates are displayed but not agreed obligations.'
-d['checked']='2026-10-15';d['responseUpdateVersion']=2
+d['checked']='2026-10-15';d['responseUpdateVersion']=3
 d['audit']['counts'].update(features=len(fs),organisations=len(orgs));d['audit']['binRegisterRecords']=48;d['audit']['correspondenceDates']=['2026-09-15','2026-09-17'];d['audit']['responseReviewed']='2026-10-13'
 d['audit']['faithCommunityMapped']='2026-10-15'
+d['audit']['warrenWayMapped']='2026-10-15'
 d['audit']['note']='Correspondence reviewed 13 October 2026. County records refreshed '+county_date+'; OSM remains the 11 September snapshot. Confirmation of a landowner or operator does not establish every maintenance contract; exact boundaries and current transfers remain subject to review.'
 (out/'responsibilities.json').write_text(json.dumps(d,ensure_ascii=False,separators=(',',':')),encoding='utf8')
 (out/'responsibility-areas.geojson').write_text(json.dumps(dict(type='FeatureCollection',features=fs),ensure_ascii=False,separators=(',',':')),encoding='utf8')
 (out/'bin-register.json').write_text(json.dumps(d['binRegister'],ensure_ascii=False,indent=2),encoding='utf8')
 notes=['# Northstowe responsibility register','Updated from organisation replies: 13 October 2026. County records refreshed '+county_date+'; OSM physical footprints remain the 11 September snapshot.','','## Confirmations','Western Park: operator and district repair scopes are separate. Mini/grass pitches route to Elite Sports; shock pads/sublayers and car-park surface/EV assets route to SCDC. Surrounding landscaping and the historical L&Q accessway still need exact current boundaries.','Homes England: retained land in Phases 2, 3A and 3B, with explicit Inholm, Stirling Fields and Education Campus exceptions. This is a confirmed land contact, not a verified inventory of every maintenance service.','Lighting: county MyMaps identifies adopted assets; Balfour Beatty reporting and HDM escalation are recorded. The refreshed inventory retains 50 explicitly county-owned light points, 6 adopted-highway records, 2 prospective records, 176 gullies and 11 rights-of-way records.','Bins: 48 unlocated schedule records; 46 Wednesday, 2 Thursday; only 2 supplied bin numbers. No contractor or repair responsibility inferred.','','## Ownership, contracts and transfers','SCDC owns the identified Western Park sports facilities and allotment/orchard land. NHA operates the allotment/orchard under licence. The title-plan image or traced boundary is not republished. Pending Faith/Community, Eastern Sports Hub and Town Hub transfers retain their last confirmed contacts.','','## Remaining gaps']
 notes[2:2]=['Faith / community land added 15 October 2026 using existing OSM way 725332128, identified by the councillor. Urban & Civic is the confirmed landowner/enquiry contact in the 15 September reply; SCDC transfer remains pending. Service contracts and the surveyed boundary are not established by this footprint.']
+notes[3:3]=['H12 / Warren Way enquiry coverage extended 15 October 2026 by interpreting the published Greenbelt parcel plan. Linden/Vistry is a developer enquiry route; current ownership, individual maintenance services and later transfers remain unconfirmed. The original OSM footprint is retained; separately mapped greenway and Anglian Water land are excluded from the extension.']
 for g in d['gaps']:notes += [f"### {g['title']}",g['detail'],'Information holder: '+g['holder']]
 notes+=['','## Sources']
 for id,s in src.items():notes.append(f"- {id}: {s['title']} — {s['publisher']}; {s['date']}. "+(s['url'] if s.get('url') else 'Original evidence held privately; public summary only.'))

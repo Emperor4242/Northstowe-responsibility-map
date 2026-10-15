@@ -24,6 +24,10 @@ test('served register contains reviewed roads, bin scopes and current contact ad
   const faith = d.features.find((f) => f.properties.id === 'way-725332128');
   assert.equal(faith.properties.landOwner, 'uc');
   assert.equal(faith.properties.transferStatus, 'Transfer pending');
+  const h12 = d.features.find((f) => f.properties.id === 'way-1187799861');
+  assert.match(h12.properties.name, /Warren Way/);
+  assert.equal(h12.properties.responsibilities[0].evidence, 'enquiry');
+  assert.equal(h12.properties.responsibilities[0].org, 'vistry');
   assert.equal(d.organisations.elite.email, 'westernpark@elitesportsuk.com');
   assert(d.features.some((f) => f.properties.id === 'bins-bughunter'));
   assert(d.features.some((f) => f.properties.id === 'western-carpark'));

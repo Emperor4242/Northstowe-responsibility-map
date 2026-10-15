@@ -1,6 +1,7 @@
 # Northstowe responsibility register
 Updated from organisation replies: 13 October 2026. County records refreshed 2026-10-13; OSM physical footprints remain the 11 September snapshot.
 Faith / community land added 15 October 2026 using existing OSM way 725332128, identified by the councillor. Urban & Civic is the confirmed landowner/enquiry contact in the 15 September reply; SCDC transfer remains pending. Service contracts and the surveyed boundary are not established by this footprint.
+H12 / Warren Way enquiry coverage extended 15 October 2026 by interpreting the published Greenbelt parcel plan. Linden/Vistry is a developer enquiry route; current ownership, individual maintenance services and later transfers remain unconfirmed. The original OSM footprint is retained; separately mapped greenway and Anglian Water land are excluded from the extension.
 
 ## Confirmations
 Western Park: operator and district repair scopes are separate. Mini/grass pitches route to Elite Sports; shock pads/sublayers and car-park surface/EV assets route to SCDC. Surrounding landscaping and the historical L&Q accessway still need exact current boundaries.
@@ -213,10 +214,9 @@ OpenStreetMap development footprint, which may exclude completed sections. Confi
 OpenStreetMap footprint: locates the asset, not its legal maintenance boundary.
 - Taylor Wimpey: Housebuilder contact for this parcel pending confirmation of subsequent transfers.  Evidence: published source; confirmed: not supplied. Sources: greenbelt, report.
 - Taylor Wimpey: Enquire about the bin at this location. The publicly available records identify a land or facility contact, but do not establish who empties each bin. Bin-emptying contractor and exact service area are unconfirmed. Please provide a photo, bin label/ID and location. Evidence: enquiry; confirmed: not supplied. Sources: greenbelt, report.
-### H12 — Linden / The Boulevards
-OpenStreetMap footprint: locates the asset, not its legal maintenance boundary.
-- Vistry / Bovis / Linden Homes: Housebuilder contact for this parcel pending confirmation of subsequent transfers.  Evidence: published source; confirmed: not supplied. Sources: greenbelt, report.
-- Vistry / Bovis / Linden Homes: Enquire about the bin at this location. The publicly available records identify a land or facility contact, but do not establish who empties each bin. Bin-emptying contractor and exact service area are unconfirmed. Please provide a photo, bin label/ID and location. Evidence: enquiry; confirmed: not supplied. Sources: greenbelt, report.
+### H12 / Warren Way — Linden / Vistry developer enquiry
+Indicative H12 outline hand-digitised from Greenbelt’s 10 September 2025 parcel plan using the existing approximate plan alignment, combined with OSM way 1187799861. Extends enquiry coverage around Warren Way. Separately mapped Southern Greenway and Bug Hunter Waters land are excluded from the extension. Not a surveyed ownership, highway-adoption or maintenance boundary.
+- Vistry / Bovis / Linden Homes: Linden Homes / Vistry is the developer enquiry route for H12, including Warren Way, as located using the published parcel plan. Current maintenance contracts and subsequent handovers are unconfirmed. This enquiry area does not establish current landownership, highway adoption or responsibility for every private property, tree or bin. Evidence: enquiry; confirmed: not supplied. Sources: greenbelt, report.
 ### Fly-tipping reporting — whole parish
 ONS civil parish boundary used as a reporting-service area only.
 - Greater Cambridge Shared Waste: Report fly-tipping here, including its location and photographs. Clearance on private land must also be raised with the relevant landowner or manager. Evidence: published source; confirmed: not supplied. Sources: waste.

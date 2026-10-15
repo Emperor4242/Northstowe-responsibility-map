@@ -361,6 +361,54 @@ test('Faith/community parcel routes every problem filter to Urban & Civic as lan
   assert.equal(data.audit.counts.adopted_records, 6);
 });
 
+test('Warren Way and nearby H12 homes have a developer enquiry without implying confirmed maintenance', () => {
+  const h12 = feature('way-1187799861');
+  const street = data.searchPlaces.find(
+    (f) => f.properties.name === 'Warren Way',
+  );
+  for (const part of street.geometry.coordinates)
+    for (const p of part)
+      assert(contains(h12, p), 'Warren Way is outside the enquiry outline');
+  for (const p of [
+    [0.0609, 52.28813],
+    [0.06036, 52.28834],
+  ])
+    assert(contains(h12, p));
+  assert.equal(h12.properties.status, 'uncertain');
+  assert.equal(h12.properties.geometryStatus, 'indicative');
+  assert.equal(h12.properties.landOwner, undefined);
+  assert.equal(h12.properties.operator, undefined);
+  assert.match(h12.properties.geometryNote, /hand-digitised/);
+  for (const category of [
+    'green',
+    'water',
+    'roads',
+    'lighting',
+    'play',
+    'bins',
+    'waste',
+    'facilities',
+  ]) {
+    const rows = responsibilitySummary(h12.properties, [category]);
+    assert.deepEqual(
+      rows.map((r) => r.org),
+      ['vistry'],
+    );
+    assert.equal(rows[0].label, 'Enquiry contact for');
+    assert.match(rows[0].evidenceText, /service unconfirmed/);
+    assert.match(rows[0].caveat, /handovers are unconfirmed/);
+    assert.deepEqual(contacts(street.properties.anchor, category), ['vistry']);
+  }
+  assert.equal(
+    contains(h12, feature('way-725827723').properties.anchor),
+    false,
+  );
+  assert.equal(
+    contains(h12, feature('way-725827724').properties.anchor),
+    false,
+  );
+});
+
 test('public evidence summaries exclude received emails, restricted title-plan images and staff routing addresses', () => {
   const json = JSON.stringify(data);
   assert.doesNotMatch(
